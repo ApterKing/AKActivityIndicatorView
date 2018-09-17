@@ -19,6 +19,7 @@ class AKActivityIndicatorView: UIView {
         didSet {
             _preIndicatorLayer.color = color
             _indicatorLayer.color = color
+            _indicatorLayer.highlightColor = color
             guard let maskLayer = layer.mask as? CAShapeLayer else { return }
             maskLayer.strokeColor = color.cgColor
         }
@@ -92,16 +93,18 @@ extension AKActivityIndicatorView {
         layer.addSublayer(_preIndicatorLayer)
         _preIndicatorLayer.setNeedsDisplay()
         
+        _indicatorLayer.isHidden = true
         _indicatorLayer.frame = _preIndicatorLayer.frame
         _indicatorLayer.color = color.withAlphaComponent(0.5)
+        _indicatorLayer.hightAlphaGradient = 0.1
+        _indicatorLayer.highlightRange = 9..<12
         _indicatorLayer.highlightColor = color
-        _indicatorLayer.highlightRange = 10..<12
         layer.insertSublayer(_indicatorLayer, below: _preIndicatorLayer)
         _indicatorLayer.setNeedsDisplay()
         
         _displayLink = CADisplayLink(target: self, selector: #selector(_redrawAction))
         _displayLink.add(to: RunLoop.current, forMode: .defaultRunLoopMode)
-        _displayLink.preferredFramesPerSecond = 16
+        _displayLink.preferredFramesPerSecond = 20
         _displayLink.isPaused = true
     }
     
@@ -127,7 +130,7 @@ extension AKActivityIndicatorView {
 
         _preIndicatorLayer.isHidden = false
         _indicatorLayer.isHidden = true
-        _indicatorLayer.highlightRange = 10..<12
+        _indicatorLayer.highlightRange = 9..<12
         _indicatorLayer.setNeedsDisplay()
         _isAnimating = false
     }
@@ -151,17 +154,18 @@ extension AKActivityIndicatorView {
                 displayIfNeeded()
             }
         }
+        var hightAlphaGradient: CGFloat = 0.0 {
+            didSet {
+                displayIfNeeded()
+            }
+        }
         
         var color: UIColor = UIColor.white {
             didSet {
                 displayIfNeeded()
             }
         }
-        var alphaGradient: CGFloat = 0.0 {
-            didSet {
-                displayIfNeeded()
-            }
-        }
+        
 
         override func draw(in ctx: CGContext) {
             ctx.setFillColor(UIColor.clear.cgColor)
@@ -177,23 +181,15 @@ extension AKActivityIndicatorView {
                 ctx.setAllowsAntialiasing(true)
                 ctx.saveGState()
                 var alphaColor = color
-                if alphaGradient == 0.0 {
-                    alphaColor = color
-                } else {
-                    var alpha = 1 -  (12.0 - CGFloat(i)) * alphaGradient
-                    alpha = alpha < 0.5 ? 0.5 : alpha
-                    alphaColor = color.withAlphaComponent(alpha)
-                }
-                for highlight in highlightRange {
+                for (index, highlight) in highlightRange.enumerated().reversed() {
                     if highlight % 12 == i {
-                        alphaColor = highlightColor
+                        alphaColor = highlightColor.withAlphaComponent(1 - CGFloat(index) * hightAlphaGradient)
                         break
                     }
                 }
                 ctx.setStrokeColor(alphaColor.cgColor)
                 ctx.move(to: from)
                 ctx.addLine(to: to)
-                ctx.drawPath(using: .fillStroke)
                 ctx.strokePath()
                 ctx.closePath()
                 ctx.restoreGState()
