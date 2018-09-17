@@ -59,8 +59,8 @@ class AKActivityIndicatorView: UIView {
         
         let width = bounds.size.width
         let height = bounds.size.height
-        _preIndicatorLayer.position = CGPoint(x: width / 2.0, y: height / 2.0)
-        _indicatorLayer.position = _preIndicatorLayer.position
+        _preIndicatorLayer.center = CGPoint(x: width / 2.0, y: height / 2.0)
+        _indicatorLayer.center = _preIndicatorLayer.center
     }
     
     /// 私有属性
@@ -90,16 +90,18 @@ extension AKActivityIndicatorView {
         strokeEnd = 0.0
 
         _preIndicatorLayer.frame = bounds
-        layer.addSublayer(_preIndicatorLayer)
+        _preIndicatorLayer.backgroundColor = UIColor.clear
+        addSubview(_preIndicatorLayer)
         _preIndicatorLayer.setNeedsDisplay()
         
         _indicatorLayer.isHidden = true
+        _indicatorLayer.backgroundColor = UIColor.clear
         _indicatorLayer.frame = _preIndicatorLayer.frame
         _indicatorLayer.color = color.withAlphaComponent(0.5)
         _indicatorLayer.hightAlphaGradient = 0.1
         _indicatorLayer.highlightRange = 9..<12
         _indicatorLayer.highlightColor = color
-        layer.insertSublayer(_indicatorLayer, below: _preIndicatorLayer)
+        insertSubview(_indicatorLayer, belowSubview: _preIndicatorLayer)
         _indicatorLayer.setNeedsDisplay()
         
         _displayLink = CADisplayLink(target: self, selector: #selector(_redrawAction))
@@ -138,37 +140,36 @@ extension AKActivityIndicatorView {
 
 extension AKActivityIndicatorView {
 
-    class AKIndicatorLayer: CALayer {
+    class AKIndicatorLayer: UIView {
         
         fileprivate let outterRadius: CGFloat = 14
-        fileprivate let innerRadius: CGFloat = 7
+        fileprivate let innerRadius: CGFloat = 8
         fileprivate let lineWidth: CGFloat = 2.5
 
         var highlightRange = 0..<0 {
             didSet{
-                displayIfNeeded()
+                setNeedsDisplay()
             }
         }
         var highlightColor = UIColor.white {
             didSet {
-                displayIfNeeded()
+                setNeedsDisplay()
             }
         }
         var hightAlphaGradient: CGFloat = 0.0 {
             didSet {
-                displayIfNeeded()
+                setNeedsDisplay()
             }
         }
         
         var color: UIColor = UIColor.white {
             didSet {
-                displayIfNeeded()
+                setNeedsDisplay()
             }
         }
         
-
-        override func draw(in ctx: CGContext) {
-            ctx.setFillColor(UIColor.clear.cgColor)
+        override func draw(_ rect: CGRect) {
+            guard let ctx = UIGraphicsGetCurrentContext() else { return }
             ctx.setLineWidth(lineWidth)
             ctx.setLineCap(CGLineCap.round)
             for i in 0..<12 {
@@ -178,7 +179,6 @@ extension AKActivityIndicatorView {
                 let realOutterRadius = outterRadius - lineWidth / 2.0
                 let from = CGPoint(x: realOutterRadius + x * realOutterRadius + lineWidth / 2.0, y: realOutterRadius - y * realOutterRadius + lineWidth / 2.0)
                 let to = CGPoint(x: realOutterRadius + x * innerRadius + lineWidth / 2.0, y: realOutterRadius - y * innerRadius + lineWidth / 2.0)
-                ctx.setAllowsAntialiasing(true)
                 ctx.saveGState()
                 var alphaColor = color
                 for (index, highlight) in highlightRange.enumerated().reversed() {
@@ -191,11 +191,9 @@ extension AKActivityIndicatorView {
                 ctx.move(to: from)
                 ctx.addLine(to: to)
                 ctx.strokePath()
-                ctx.closePath()
                 ctx.restoreGState()
             }
         }
-        
     }
     
 }
